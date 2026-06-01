@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Configuration Guide — LaLiga Portal</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .guide{max-width:760px;margin:80px auto;padding:2rem;position:relative;z-index:1}
+    .step-card{background:var(--card-bg);border:1px solid var(--border);border-radius:14px;padding:1.75rem;margin-bottom:1.5rem;position:relative;overflow:hidden}
+    .step-card::before{content:attr(data-step);position:absolute;top:-10px;right:1.5rem;font-family:'Bebas Neue',sans-serif;font-size:6rem;color:rgba(245,178,34,.06);line-height:1;pointer-events:none}
+    .step-num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;background:var(--gold);color:var(--navy);border-radius:50%;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;flex-shrink:0}
+    .step-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.06em;color:var(--white);margin-left:.75rem}
+    .code-block{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:1rem 1.25rem;font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.7;margin:1rem 0;overflow-x:auto;white-space:pre}
+    .highlight{color:var(--gold)}
+    .sub-step{padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:.75rem;font-size:.9rem}
+    .sub-step:last-child{border-bottom:none}
+    .sub-num{background:rgba(245,178,34,.15);color:var(--gold);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:.75rem;flex-shrink:0;margin-top:1px}
+    a.ext{color:var(--gold);text-decoration:none;border-bottom:1px solid rgba(245,178,34,.3)}
+    a.ext:hover{border-color:var(--gold)}
+    .note{background:rgba(74,173,245,.07);border:1px solid rgba(74,173,245,.2);border-radius:8px;padding:.75rem 1rem;font-size:.85rem;color:#a8d4f5;margin:.75rem 0}
+    .warning{background:rgba(224,26,46,.07);border:1px solid rgba(224,26,46,.2);border-radius:8px;padding:.75rem 1rem;font-size:.85rem;color:#ffaaaa;margin:.75rem 0}
+  </style>
+</head>
+<body>
+<nav class="navbar">
+  <a href="index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <div class="navbar-actions">
+    <a href="setup.html" class="btn btn-gold btn-sm">Run Setup Checker</a>
+    <a href="index.html" class="btn btn-ghost btn-sm">← Home</a>
+  </div>
+</nav>
+
+<div class="guide fade-in">
+  <h1 class="section-title mb-1">CONFIGURATION <span>GUIDE</span></h1>
+  <p class="text-grey mb-4">Follow these exact steps to get your LaLiga Portal fully working. Takes about 15 minutes.</p>
+
+  <!-- STEP 1 -->
+  <div class="step-card" data-step="1">
+    <div style="display:flex;align-items:center;margin-bottom:1.25rem">
+      <span class="step-num">1</span>
+      <span class="step-title">Get Football Data API Key (FREE)</span>
+    </div>
+    <div class="sub-step"><span class="sub-num">a</span><span>Go to <a href="https://www.football-data.org/client/register" target="_blank" class="ext">football-data.org/client/register</a></span></div>
+    <div class="sub-step"><span class="sub-num">b</span><span>Fill in your name and email → click Register</span></div>
+    <div class="sub-step"><span class="sub-num">c</span><span>Check your email inbox → copy the API key they send you</span></div>
+    <div class="sub-step"><span class="sub-num">d</span><span>Open <code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem">js/api.js</code> in your GitHub repo → click the pencil (edit) icon</span></div>
+    <div class="sub-step"><span class="sub-num">e</span><span>Find line 4 and replace the placeholder with your key:</span></div>
+    <div class="code-block"><span style="color:var(--grey)">// BEFORE:</span>
+const API_KEY = <span class="highlight">"PASTE_YOUR_FOOTBALL_DATA_API_KEY_HERE"</span>;
+
+<span style="color:var(--grey)">// AFTER (example):</span>
+const API_KEY = <span class="highlight">"a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4"</span>;</div>
+    <div class="sub-step"><span class="sub-num">f</span><span>Scroll down → click <strong>Commit changes</strong> → Commit changes (green button)</span></div>
+    <div class="note">ℹ️ The free plan gives you 10 API calls/minute. The site caches responses so this is plenty.</div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-card" data-step="2">
+    <div style="display:flex;align-items:center;margin-bottom:1.25rem">
+      <span class="step-num">2</span>
+      <span class="step-title">Create Firebase Project (FREE)</span>
+    </div>
+    <div class="sub-step"><span class="sub-num">a</span><span>Go to <a href="https://console.firebase.google.com" target="_blank" class="ext">console.firebase.google.com</a> → Sign in with Google</span></div>
+    <div class="sub-step"><span class="sub-num">b</span><span>Click <strong>"Add project"</strong> → Name it <code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem">laliga-portal</code> → Continue → Create project</span></div>
+    <div class="sub-step"><span class="sub-num">c</span><span><strong>Enable Email/Password Auth:</strong> Left sidebar → Build → Authentication → Get started → Email/Password → Enable → Save</span></div>
+    <div class="sub-step"><span class="sub-num">d</span><span><strong>Create Firestore:</strong> Left sidebar → Build → Firestore Database → Create database → <em>Start in test mode</em> → Next → Choose any region → Enable</span></div>
+    <div class="sub-step"><span class="sub-num">e</span><span><strong>Set Firestore Rules:</strong> Firestore → Rules tab → Replace ALL content with this:</span></div>
+    <div class="code-block">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          in ['admin', 'moderator']
+      );
+    }
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          in ['admin', 'moderator'];
+    }
+  }
+}</div>
+    <div class="sub-step"><span class="sub-num">f</span><span>Click <strong>Publish</strong> to save the rules</span></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-card" data-step="3">
+    <div style="display:flex;align-items:center;margin-bottom:1.25rem">
+      <span class="step-num">3</span>
+      <span class="step-title">Get Firebase Config &amp; Paste It</span>
+    </div>
+    <div class="sub-step"><span class="sub-num">a</span><span>In Firebase Console → Click ⚙️ gear icon (top left) → <strong>Project settings</strong></span></div>
+    <div class="sub-step"><span class="sub-num">b</span><span>Scroll down to <strong>"Your apps"</strong> → Click the <strong>&lt;/&gt;</strong> (Web) icon</span></div>
+    <div class="sub-step"><span class="sub-num">c</span><span>App nickname: <code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem">laliga-portal</code> → click <strong>Register app</strong></span></div>
+    <div class="sub-step"><span class="sub-num">d</span><span>You'll see a config object like this — copy all the values:</span></div>
+    <div class="code-block"><span style="color:var(--grey)">// You will see something like this in Firebase:</span>
+const firebaseConfig = {
+  apiKey: <span class="highlight">"AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXX"</span>,
+  authDomain: <span class="highlight">"laliga-portal.firebaseapp.com"</span>,
+  projectId: <span class="highlight">"laliga-portal"</span>,
+  storageBucket: <span class="highlight">"laliga-portal.appspot.com"</span>,
+  messagingSenderId: <span class="highlight">"123456789012"</span>,
+  appId: <span class="highlight">"1:123456789012:web:abcdef123456"</span>
+};</div>
+    <div class="sub-step"><span class="sub-num">e</span><span>Go to your GitHub repo → open <code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem">js/firebase-config.js</code> → click ✏️ pencil to edit</span></div>
+    <div class="sub-step"><span class="sub-num">f</span><span>Replace every <code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem">PASTE_YOUR_..._HERE</code> with your real values</span></div>
+    <div class="sub-step"><span class="sub-num">g</span><span>Click <strong>Commit changes</strong></span></div>
+    <div class="warning">⚠️ Do NOT add <code style="background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem">databaseURL</code> — it's not needed and will cause errors.</div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step-card" data-step="4">
+    <div style="display:flex;align-items:center;margin-bottom:1.25rem">
+      <span class="step-num">4</span>
+      <span class="step-title">Create the Admin Account</span>
+    </div>
+    <div class="sub-step"><span class="sub-num">a</span><span>Wait ~2 minutes for GitHub Pages to redeploy after your edits</span></div>
+    <div class="sub-step"><span class="sub-num">b</span><span>Visit your site → go to <strong>pages/login.html</strong></span></div>
+    <div class="sub-step"><span class="sub-num">c</span><span>Scroll to the bottom of the login page → open <strong>"⚙️ First time / Admin setup"</strong></span></div>
+    <div class="sub-step"><span class="sub-num">d</span><span>Click <strong>"Create Admin Account"</strong> → you should see a green success message</span></div>
+    <div class="sub-step"><span class="sub-num">e</span><span>Now log in with: <strong>sakibhasn85@gmail.com</strong> / <strong>Sakib1998!</strong></span></div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step-card" data-step="5">
+    <div style="display:flex;align-items:center;margin-bottom:1.25rem">
+      <span class="step-num">5</span>
+      <span class="step-title">Verify Everything Works</span>
+    </div>
+    <div class="sub-step"><span class="sub-num">a</span><span>Visit your site's <strong>setup.html</strong> page to run automated checks</span></div>
+    <div class="sub-step"><span class="sub-num">b</span><span>All 4 checks should show ✅ green</span></div>
+    <div class="sub-step"><span class="sub-num">c</span><span>If any fail, the checker shows you exactly what to fix</span></div>
+
+    <div style="margin-top:1.25rem;display:flex;gap:.75rem;flex-wrap:wrap">
+      <a href="setup.html" class="btn btn-gold">Run Setup Checker →</a>
+      <a href="pages/login.html" class="btn btn-primary">Go to Login →</a>
+    </div>
+  </div>
+
+  <!-- Quick reference -->
+  <div class="card mt-4">
+    <div class="card-body">
+      <h3 style="font-family:'Bebas Neue';font-size:1.3rem;color:var(--gold);margin-bottom:1rem">ADMIN CREDENTIALS</h3>
+      <div class="code-block">Email:    sakibhasn85@gmail.com
+Password: Sakib1998!
+Phone:    01706363514</div>
+      <p class="text-grey" style="font-size:.85rem;margin-top:.5rem">You can change the password anytime from the Admin Panel → Change Password tab.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>
