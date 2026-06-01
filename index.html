@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LaLiga Portal — Official Fan Hub</title>
+  <meta name="description" content="Complete La Liga stats, live scores, standings, and history." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="assets/logos/laliga-icon.svg" type="image/svg+xml" />
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <a href="index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <ul class="navbar-nav" id="mainNav">
+    <li><a href="index.html" class="active">Home</a></li>
+    <li><a href="pages/scores.html">Scores</a></li>
+    <li><a href="pages/standings.html">Standings</a></li>
+    <li><a href="pages/clubs.html">Clubs</a></li>
+    <li><a href="pages/stats.html">Stats</a></li>
+    <li><a href="pages/history.html">History</a></li>
+  </ul>
+  <div class="navbar-actions">
+    <span class="live-badge" id="liveIndicator" style="display:none">LIVE</span>
+    <div id="authButtons">
+      <a href="pages/login.html" class="btn btn-outline btn-sm">Sign In</a>
+      <a href="pages/signup.html" class="btn btn-primary btn-sm">Join</a>
+    </div>
+    <div id="userMenu" style="display:none">
+      <button class="btn btn-ghost btn-sm" onclick="openUserDropdown()" id="userBtn">— Loading…</button>
+    </div>
+    <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="fade-in">
+    <p class="text-gold mono mb-1" style="font-size:0.85rem;letter-spacing:0.2em;text-transform:uppercase">Season 2024/25</p>
+    <h1 class="hero-title">THE <span>BEAUTIFUL</span><br>GAME, DATA-DRIVEN</h1>
+    <p class="hero-subtitle">Real-time scores, complete history, every stat — for every La Liga fan.</p>
+    <div class="flex items-center gap-2" style="justify-content:center;flex-wrap:wrap">
+      <a href="pages/scores.html" class="btn btn-primary btn-lg">Live Scores</a>
+      <a href="pages/standings.html" class="btn btn-outline btn-lg">Standings</a>
+    </div>
+  </div>
+</section>
+
+<!-- LIVE MATCH WATCH SECTION -->
+<div class="main-content">
+  <div id="liveMatchSection" style="display:none" class="card mb-4 fade-in" style="border-color:rgba(224,26,46,0.5);background:rgba(224,26,46,0.05)">
+    <div class="card-body text-center" style="padding:2.5rem">
+      <div class="live-badge mb-2" style="display:inline-flex">LIVE MATCH ON NOW</div>
+      <h2 id="liveMatchTitle" style="font-size:2rem;margin:0.75rem 0">Match In Progress</h2>
+      <p class="text-grey mb-3" style="font-size:0.95rem">Watch the game live — exclusive stream for registered members</p>
+      <button class="watch-live-btn" id="watchLiveBtn" onclick="handleWatchLive()">
+        ▶ WATCH LIVE
+      </button>
+    </div>
+  </div>
+
+  <!-- LIVE SCORES STRIP -->
+  <div class="section-header">
+    <h2 class="section-title">TODAY'S <span>SCORES</span></h2>
+    <a href="pages/scores.html" class="btn btn-ghost btn-sm">All Matches →</a>
+  </div>
+
+  <div id="liveScoresContainer" class="stagger mb-4">
+    <div class="loading-state"><div class="spinner"></div><p>Loading matches…</p></div>
+  </div>
+
+  <!-- STANDINGS PREVIEW -->
+  <div class="grid-2 mb-4" style="align-items:start">
+    <div class="card">
+      <div class="card-header flex items-center justify-between">
+        <h3 class="section-title" style="font-size:1.5rem">STANDINGS</h3>
+        <a href="pages/standings.html" class="btn btn-ghost btn-sm">Full Table →</a>
+      </div>
+      <div class="card-body" style="padding-top:0.5rem;overflow-x:auto">
+        <div id="standingsPreview">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header flex items-center justify-between">
+        <h3 class="section-title" style="font-size:1.5rem">TOP SCORERS</h3>
+        <a href="pages/stats.html" class="btn btn-ghost btn-sm">Full Stats →</a>
+      </div>
+      <div class="card-body" style="padding-top:0.5rem">
+        <div id="topScorersPreview">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLUBS -->
+  <div class="section-header">
+    <h2 class="section-title">THE <span>CLUBS</span></h2>
+    <a href="pages/clubs.html" class="btn btn-ghost btn-sm">All Clubs →</a>
+  </div>
+  <div id="clubsPreview" class="stagger mb-4">
+    <div class="loading-state"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-logo">LALIGA PORTAL</div>
+  <p class="footer-text">Unofficial fan portal. Data from football-data.org. Not affiliated with La Liga.</p>
+  <p class="footer-text mt-1" style="font-size:0.75rem">© 2025 LaLiga Portal</p>
+</footer>
+
+<!-- USER DROPDOWN MODAL -->
+<div class="modal-overlay" id="userDropdownModal">
+  <div class="modal" style="max-width:320px">
+    <button class="modal-close" onclick="closeModal('userDropdownModal')">✕</button>
+    <div id="userDropdownContent"></div>
+  </div>
+</div>
+
+<script type="module">
+import { onUserChange, logOut, getLiveMatchLink } from './js/auth.js';
+import { getMatches, getStandings, getTopScorers, getTeams, formatDate, formatTime, startLiveRefresh } from './js/api.js';
+
+let currentUser = null;
+let currentUserData = null;
+
+// Auth state
+onUserChange((user, userData) => {
+  currentUser = user;
+  currentUserData = userData;
+  updateNavAuth(user, userData);
+});
+
+function updateNavAuth(user, userData) {
+  const authBtns = document.getElementById('authButtons');
+  const userMenu = document.getElementById('userMenu');
+  const userBtn = document.getElementById('userBtn');
+  if (user && userData) {
+    authBtns.style.display = 'none';
+    userMenu.style.display = 'block';
+    userBtn.textContent = userData.name || user.email;
+  } else {
+    authBtns.style.display = 'flex';
+    userMenu.style.display = 'none';
+  }
+}
+
+window.openUserDropdown = function() {
+  if (!currentUserData) return;
+  const content = document.getElementById('userDropdownContent');
+  const role = currentUserData.role;
+  content.innerHTML = `
+    <h3 style="font-size:1.5rem;margin-bottom:0.25rem">${currentUserData.name}</h3>
+    <p class="text-grey" style="font-size:0.85rem;margin-bottom:0.25rem">${currentUserData.email}</p>
+    <span class="role-badge ${role}" style="margin-bottom:1.5rem;display:inline-block">${role.toUpperCase()}</span>
+    <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1rem">
+      <a href="pages/profile.html" class="btn btn-outline">My Profile</a>
+      ${role === 'admin' || role === 'moderator' ? '<a href="pages/admin.html" class="btn btn-gold">Admin Panel</a>' : ''}
+      <button onclick="doLogout()" class="btn btn-danger">Sign Out</button>
+    </div>
+  `;
+  document.getElementById('userDropdownModal').classList.add('show');
+};
+
+window.doLogout = async function() {
+  await logOut();
+};
+
+window.closeModal = function(id) {
+  document.getElementById(id).classList.remove('show');
+};
+
+// Handle watch live
+window.handleWatchLive = async function() {
+  if (!currentUser) {
+    window.location.href = 'pages/login.html?redirect=watch';
+    return;
+  }
+  const liveData = await getLiveMatchLink();
+  if (liveData && liveData.link) {
+    window.open(liveData.link, '_blank');
+  }
+};
+
+// Load live match banner
+async function loadLiveBanner() {
+  try {
+    const liveData = await getLiveMatchLink();
+    if (liveData && liveData.active) {
+      document.getElementById('liveMatchSection').style.display = 'block';
+      document.getElementById('liveMatchTitle').textContent = liveData.matchTitle || 'Match In Progress';
+      document.getElementById('liveIndicator').style.display = 'inline-flex';
+    }
+  } catch(e) {}
+}
+
+// Load today's matches
+async function loadTodayScores() {
+  const container = document.getElementById('liveScoresContainer');
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+    let matches = await getMatches(null, today, tomorrow);
+    if (!matches || matches.length === 0) {
+      // Show recent matches if no today matches
+      matches = await getMatches('FINISHED');
+      matches = matches.slice(-4);
+    }
+    if (!matches || matches.length === 0) {
+      container.innerHTML = '<p class="text-grey text-center">No matches today.</p>';
+      return;
+    }
+    container.innerHTML = matches.slice(0,6).map(m => renderMatchCard(m)).join('');
+  } catch(e) {
+    container.innerHTML = '<p class="text-grey text-center">Could not load matches. Check API key.</p>';
+  }
+}
+
+function renderMatchCard(m) {
+  const isLive = m.status === 'IN_PLAY' || m.status === 'PAUSED';
+  const score = m.score?.fullTime;
+  const homeGoals = score?.home ?? '—';
+  const awayGoals = score?.away ?? '—';
+  const statusText = isLive ? `${m.minute || ''}'` : (m.status === 'FINISHED' ? 'FT' : formatTime(m.utcDate));
+  return `
+    <div class="match-card ${isLive ? 'live' : ''}">
+      <div class="team-info">
+        <img src="${m.homeTeam.crest || 'assets/logos/default.svg'}" class="team-crest" alt="${m.homeTeam.shortName}" onerror="this.src='assets/logos/default.svg'">
+        <div>
+          <div class="team-name">${m.homeTeam.shortName || m.homeTeam.name}</div>
+          <div class="team-short">${m.homeTeam.tla || ''}</div>
+        </div>
+      </div>
+      <div class="score-display">
+        <div class="score-numbers">${homeGoals} — ${awayGoals}</div>
+        <div class="score-status ${isLive ? 'live-status' : ''}">${statusText}</div>
+      </div>
+      <div class="team-info away">
+        <img src="${m.awayTeam.crest || 'assets/logos/default.svg'}" class="team-crest" alt="${m.awayTeam.shortName}" onerror="this.src='assets/logos/default.svg'">
+        <div>
+          <div class="team-name">${m.awayTeam.shortName || m.awayTeam.name}</div>
+          <div class="team-short">${m.awayTeam.tla || ''}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Load standings preview (top 5)
+async function loadStandingsPreview() {
+  const el = document.getElementById('standingsPreview');
+  try {
+    const table = await getStandings();
+    const top = table.slice(0, 8);
+    el.innerHTML = `
+      <table class="standings-table">
+        <thead><tr>
+          <th>#</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th>
+        </tr></thead>
+        <tbody>
+          ${top.map((t, i) => `
+            <tr class="pos-${t.position}">
+              <td><span class="pos-num">${t.position}</span></td>
+              <td><div class="team-row"><img src="${t.team.crest}" class="team-crest-sm" onerror="this.src='assets/logos/default.svg'" />${t.team.shortName || t.team.name}</div></td>
+              <td>${t.playedGames}</td><td>${t.won}</td><td>${t.draw}</td><td>${t.lost}</td>
+              <td><span class="pts-cell">${t.points}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch(e) {
+    el.innerHTML = '<p class="text-grey">Failed to load standings.</p>';
+  }
+}
+
+// Load top scorers preview
+async function loadTopScorers() {
+  const el = document.getElementById('topScorersPreview');
+  try {
+    const scorers = await getTopScorers();
+    el.innerHTML = `<div class="stagger" style="display:flex;flex-direction:column;gap:0.6rem">
+      ${scorers.slice(0,5).map((s, i) => `
+        <div class="player-card">
+          <div class="player-rank ${i < 3 ? 'top-3' : ''}">${i+1}</div>
+          <img src="${s.team?.crest || 'assets/logos/default.svg'}" class="team-crest-sm" style="width:30px;height:30px" onerror="this.src='assets/logos/default.svg'"/>
+          <div class="player-info">
+            <div class="player-name">${s.scorer?.name || 'Unknown'}</div>
+            <div class="player-club">${s.team?.shortName || ''}</div>
+          </div>
+          <div>
+            <div class="player-stat">${s.goals}</div>
+            <div class="player-stat-label">Goals</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = '<p class="text-grey">Failed to load scorers.</p>';
+  }
+}
+
+// Load clubs grid preview
+async function loadClubsPreview() {
+  const el = document.getElementById('clubsPreview');
+  try {
+    const teams = await getTeams();
+    el.innerHTML = `<div class="grid-4 stagger">
+      ${teams.slice(0,8).map(t => `
+        <a href="pages/clubs.html#${t.id}" class="club-card">
+          <img src="${t.crest}" alt="${t.shortName}" onerror="this.src='assets/logos/default.svg'">
+          <div class="club-name">${t.shortName || t.name}</div>
+          <div class="club-meta">${t.venue || t.tla}</div>
+        </a>
+      `).join('')}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = '<p class="text-grey">Failed to load clubs.</p>';
+  }
+}
+
+// Mobile nav
+window.toggleMobileNav = function() {
+  document.body.classList.toggle('mobile-nav-open');
+};
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('show'); });
+});
+
+// Init
+loadLiveBanner();
+startLiveRefresh(loadTodayScores, 60000);
+loadStandingsPreview();
+loadTopScorers();
+loadClubsPreview();
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign In — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .auth-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+    .auth-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .auth-header { text-align:center; margin-bottom: 2rem; }
+    .auth-logo { font-family:'Bebas Neue';font-size:3rem;color:var(--gold);letter-spacing:0.1em; }
+    .auth-subtitle { color:var(--grey);font-size:0.9rem;margin-top:0.25rem; }
+    .divider { display:flex;align-items:center;gap:1rem;margin:1.5rem 0;color:var(--grey);font-size:0.8rem }
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+    .error-msg { background:rgba(224,26,46,0.1);border:1px solid rgba(224,26,46,0.3);color:#ff4d5e;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;margin-bottom:1rem;display:none }
+    .success-msg { background:rgba(29,185,84,0.1);border:1px solid rgba(29,185,84,0.3);color:var(--green);padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;margin-bottom:1rem;display:none }
+  </style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card fade-in">
+    <div class="auth-header">
+      <div class="auth-logo">LALIGA<br>PORTAL</div>
+      <p class="auth-subtitle">Sign in to your account</p>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+    <div id="successMsg" class="success-msg"></div>
+
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input type="email" class="form-control" id="emailInput" placeholder="your@email.com" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <div style="position:relative">
+        <input type="password" class="form-control" id="passwordInput" placeholder="••••••••" />
+        <button onclick="togglePass()" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--grey);cursor:pointer;font-size:0.85rem">Show</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full btn-lg" onclick="doLogin()" id="loginBtn">SIGN IN</button>
+
+    <div class="divider">or</div>
+
+    <div style="text-align:center">
+      <p class="text-grey" style="font-size:0.9rem">Don't have an account?</p>
+      <a href="signup.html" class="btn btn-outline mt-1">Create Account</a>
+    </div>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <a href="../index.html" style="color:var(--grey);font-size:0.85rem;text-decoration:none">← Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { signIn, initAdmin } from '../js/auth.js';
+import { auth } from '../js/firebase-config.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+// Check if already logged in
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    const redirect = new URLSearchParams(window.location.search).get('redirect');
+    if (redirect === 'watch') window.location.href = '../index.html';
+    else window.location.href = '../index.html';
+  }
+});
+
+window.togglePass = function() {
+  const input = document.getElementById('passwordInput');
+  input.type = input.type === 'password' ? 'text' : 'password';
+};
+
+window.doLogin = async function() {
+  const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('errorMsg');
+  const sucEl = document.getElementById('successMsg');
+
+  if (!email || !password) {
+    showError('Please fill in all fields.');
+    return;
+  }
+
+  btn.textContent = 'Signing in…';
+  btn.disabled = true;
+  errEl.style.display = 'none';
+
+  try {
+    const userData = await signIn(email, password);
+    sucEl.textContent = `Welcome back, ${userData.name}!`;
+    sucEl.style.display = 'block';
+    setTimeout(() => {
+      const role = userData.role;
+      if (role === 'admin' || role === 'moderator') {
+        window.location.href = 'admin.html';
+      } else {
+        window.location.href = '../index.html';
+      }
+    }, 800);
+  } catch(e) {
+    let msg = e.message;
+    if (msg.includes('user-not-found') || msg.includes('wrong-password') || msg.includes('invalid-credential')) {
+      msg = 'Invalid email or password.';
+    }
+    showError(msg);
+    btn.textContent = 'SIGN IN';
+    btn.disabled = false;
+  }
+};
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// Init admin on first load
+initAdmin().catch(()=>{});
+</script>
+</body>
+</html>

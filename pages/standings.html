@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Standings — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<nav class="navbar">
+  <a href="../index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <ul class="navbar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="scores.html">Scores</a></li>
+    <li><a href="standings.html" class="active">Standings</a></li>
+    <li><a href="clubs.html">Clubs</a></li>
+    <li><a href="stats.html">Stats</a></li>
+    <li><a href="history.html">History</a></li>
+  </ul>
+  <div class="navbar-actions">
+    <div id="authButtons">
+      <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Join</a>
+    </div>
+    <div id="userMenu" style="display:none">
+      <button class="btn btn-ghost btn-sm" id="userBtn">—</button>
+    </div>
+    <button class="hamburger" onclick="document.body.classList.toggle('mobile-nav-open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="main-content fade-in">
+  <div class="section-header">
+    <h1 class="section-title">LA LIGA <span>STANDINGS</span></h1>
+    <button onclick="loadStandings()" class="btn btn-outline btn-sm">↻ Refresh</button>
+  </div>
+
+  <!-- Zone Legend -->
+  <div class="flex gap-2 mb-3" style="flex-wrap:wrap;font-size:0.8rem;font-family:'JetBrains Mono'">
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:var(--gold);border-radius:50%;display:inline-block"></span>Champions League</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:#f5824a;border-radius:50%;display:inline-block"></span>Europa League</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:#4aadf5;border-radius:50%;display:inline-block"></span>Conference League</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;background:var(--crimson);border-radius:50%;display:inline-block"></span>Relegation</span>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="overflow-x:auto">
+      <div id="standingsContainer">
+        <div class="loading-state"><div class="spinner"></div><p>Loading standings…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { onUserChange } from '../js/auth.js';
+import { getStandings } from '../js/api.js';
+
+onUserChange((user, userData) => {
+  if (user && userData) {
+    document.getElementById('authButtons').style.display = 'none';
+    document.getElementById('userMenu').style.display = 'block';
+    document.getElementById('userBtn').textContent = userData.name;
+  }
+});
+
+window.loadStandings = async function() {
+  const el = document.getElementById('standingsContainer');
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const table = await getStandings();
+    el.innerHTML = `
+      <table class="standings-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Team</th>
+            <th title="Played">P</th>
+            <th title="Won">W</th>
+            <th title="Drawn">D</th>
+            <th title="Lost">L</th>
+            <th title="Goals For">GF</th>
+            <th title="Goals Against">GA</th>
+            <th title="Goal Difference">GD</th>
+            <th title="Points">Pts</th>
+            <th title="Form (last 5)">Form</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${table.map(t => {
+            const form = (t.form || '').split(',').slice(-5);
+            const gd = t.goalsFor - t.goalsAgainst;
+            let rowClass = `pos-${t.position}`;
+            let zoneBar = '';
+            if (t.position <= 4) zoneBar = 'background:rgba(245,178,34,0.06)';
+            else if (t.position === 5) zoneBar = 'background:rgba(245,130,74,0.06)';
+            else if (t.position >= 18) zoneBar = 'background:rgba(224,26,46,0.06)';
+            return `
+              <tr class="${rowClass}" style="${zoneBar}">
+                <td>
+                  <span class="pos-num">${t.position}</span>
+                </td>
+                <td>
+                  <div class="team-row">
+                    <img src="${t.team.crest}" class="team-crest-sm" onerror="this.src='../assets/logos/default.svg'" />
+                    <span>${t.team.shortName || t.team.name}</span>
+                  </div>
+                </td>
+                <td>${t.playedGames}</td>
+                <td>${t.won}</td>
+                <td>${t.draw}</td>
+                <td>${t.lost}</td>
+                <td>${t.goalsFor}</td>
+                <td>${t.goalsAgainst}</td>
+                <td style="color:${gd > 0 ? 'var(--green)' : gd < 0 ? 'var(--crimson)' : 'inherit'}">${gd > 0 ? '+' : ''}${gd}</td>
+                <td><span class="pts-cell">${t.points}</span></td>
+                <td>
+                  <div class="form-dots">
+                    ${form.map(r => `<div class="form-dot ${r}" title="${r === 'W' ? 'Win' : r === 'D' ? 'Draw' : 'Loss'}"></div>`).join('')}
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch(e) {
+    el.innerHTML = '<p class="text-grey text-center" style="padding:2rem">Failed to load standings. Please check your API key.</p>';
+  }
+};
+
+loadStandings();
+</script>
+</body>
+</html>

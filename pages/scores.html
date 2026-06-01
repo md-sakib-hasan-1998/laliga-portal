@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scores — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<nav class="navbar">
+  <a href="../index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <ul class="navbar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="scores.html" class="active">Scores</a></li>
+    <li><a href="standings.html">Standings</a></li>
+    <li><a href="clubs.html">Clubs</a></li>
+    <li><a href="stats.html">Stats</a></li>
+    <li><a href="history.html">History</a></li>
+  </ul>
+  <div class="navbar-actions">
+    <span class="live-badge" id="liveIndicator" style="display:none">LIVE</span>
+    <div id="authButtons">
+      <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Join</a>
+    </div>
+    <div id="userMenu" style="display:none">
+      <button class="btn btn-ghost btn-sm" id="userBtn">—</button>
+    </div>
+    <button class="hamburger" onclick="document.body.classList.toggle('mobile-nav-open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="main-content">
+  <div class="section-header">
+    <h1 class="section-title">MATCH <span>SCORES</span></h1>
+    <div class="live-badge" id="autoRefreshBadge">AUTO-REFRESH</div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-status="today" onclick="setFilter('today', this)">TODAY</button>
+    <button class="tab-btn" data-status="LIVE" onclick="setFilter('LIVE', this)">LIVE</button>
+    <button class="tab-btn" data-status="SCHEDULED" onclick="setFilter('SCHEDULED', this)">UPCOMING</button>
+    <button class="tab-btn" data-status="FINISHED" onclick="setFilter('FINISHED', this)">RESULTS</button>
+  </div>
+
+  <!-- Matchday selector -->
+  <div class="flex items-center gap-2 mb-3">
+    <label class="form-label" style="margin:0;white-space:nowrap">Matchday:</label>
+    <select class="form-control" id="matchdaySelect" style="max-width:160px" onchange="loadByMatchday()">
+      <option value="">All</option>
+      ${Array.from({length:38}, (_, i) => `<option value="${i+1}">Matchday ${i+1}</option>`).join('')}
+    </select>
+    <button onclick="refreshData()" class="btn btn-outline btn-sm">↻ Refresh</button>
+  </div>
+
+  <div id="scoresContainer" class="stagger">
+    <div class="loading-state"><div class="spinner"></div><p>Loading matches…</p></div>
+  </div>
+</div>
+
+<script type="module">
+import { onUserChange } from '../js/auth.js';
+import { getMatches, getLiveMatches, getMatchday, formatDate, formatTime, startLiveRefresh } from '../js/api.js';
+
+let currentFilter = 'today';
+let refreshTimer = null;
+
+onUserChange((user, userData) => {
+  const authBtns = document.getElementById('authButtons');
+  const userMenu = document.getElementById('userMenu');
+  if (user && userData) {
+    authBtns.style.display = 'none';
+    userMenu.style.display = 'block';
+    document.getElementById('userBtn').textContent = userData.name;
+  }
+});
+
+window.setFilter = function(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('matchdaySelect').value = '';
+  loadMatches();
+};
+
+window.loadByMatchday = async function() {
+  const md = document.getElementById('matchdaySelect').value;
+  if (!md) { loadMatches(); return; }
+  showLoading();
+  try {
+    const matches = await getMatchday(parseInt(md));
+    renderMatches(matches, `Matchday ${md}`);
+  } catch(e) {
+    showError();
+  }
+};
+
+window.refreshData = function() { loadMatches(); };
+
+function showLoading() {
+  document.getElementById('scoresContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading…</p></div>';
+}
+
+function showError() {
+  document.getElementById('scoresContainer').innerHTML = '<p class="text-grey text-center" style="padding:2rem">Failed to load matches. Please check your API key.</p>';
+}
+
+async function loadMatches() {
+  showLoading();
+  try {
+    let matches;
+    if (currentFilter === 'today') {
+      const today = new Date().toISOString().split('T')[0];
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      matches = await getMatches(null, today, tomorrow);
+    } else if (currentFilter === 'LIVE') {
+      matches = await getLiveMatches();
+    } else {
+      matches = await getMatches(currentFilter);
+      if (currentFilter === 'FINISHED') matches = matches.slice(-20).reverse();
+      if (currentFilter === 'SCHEDULED') matches = matches.slice(0, 20);
+    }
+    renderMatches(matches, currentFilter);
+  } catch(e) {
+    showError();
+  }
+}
+
+function groupByMatchday(matches) {
+  const groups = {};
+  for (const m of matches) {
+    const md = `Matchday ${m.matchday}`;
+    if (!groups[md]) groups[md] = [];
+    groups[md].push(m);
+  }
+  return groups;
+}
+
+function renderMatches(matches, filter) {
+  const container = document.getElementById('scoresContainer');
+  if (!matches || matches.length === 0) {
+    container.innerHTML = '<p class="text-grey text-center" style="padding:2rem">No matches found.</p>';
+    if (filter === 'LIVE') {
+      document.getElementById('liveIndicator').style.display = 'none';
+    }
+    return;
+  }
+
+  const hasLive = matches.some(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+  document.getElementById('liveIndicator').style.display = hasLive ? 'inline-flex' : 'none';
+
+  // Group by date
+  const byDate = {};
+  for (const m of matches) {
+    const day = new Date(m.utcDate).toDateString();
+    if (!byDate[day]) byDate[day] = [];
+    byDate[day].push(m);
+  }
+
+  let html = '';
+  for (const [day, dayMatches] of Object.entries(byDate)) {
+    const dateLabel = new Date(day).toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+    html += `<h3 style="font-family:'Bebas Neue';letter-spacing:0.06em;color:var(--grey);font-size:1rem;margin:1.5rem 0 0.75rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border)">${dateLabel}</h3>`;
+    html += `<div style="display:flex;flex-direction:column;gap:0.75rem">`;
+    for (const m of dayMatches) {
+      const isLive = m.status === 'IN_PLAY' || m.status === 'PAUSED';
+      const score = m.score?.fullTime;
+      const homeGoals = score?.home ?? '—';
+      const awayGoals = score?.away ?? '—';
+      const statusText = isLive ? `${m.minute || '?'}'`
+        : m.status === 'FINISHED' ? 'FT'
+        : m.status === 'HALFTIME' ? 'HT'
+        : formatTime(m.utcDate);
+
+      html += `
+        <div class="match-card ${isLive ? 'live' : ''}">
+          <div class="team-info">
+            <img src="${m.homeTeam.crest || '../assets/logos/default.svg'}" class="team-crest" alt="${m.homeTeam.name}" onerror="this.src='../assets/logos/default.svg'">
+            <div>
+              <div class="team-name">${m.homeTeam.shortName || m.homeTeam.name}</div>
+              <div class="team-short">${m.homeTeam.tla || ''}</div>
+            </div>
+          </div>
+          <div class="score-display">
+            <div class="score-numbers">${homeGoals} — ${awayGoals}</div>
+            <div class="score-status ${isLive ? 'live-status' : ''}">${statusText}</div>
+            ${m.matchday ? `<div style="font-size:0.65rem;color:var(--grey);font-family:'JetBrains Mono';margin-top:2px">MD ${m.matchday}</div>` : ''}
+          </div>
+          <div class="team-info away">
+            <img src="${m.awayTeam.crest || '../assets/logos/default.svg'}" class="team-crest" alt="${m.awayTeam.name}" onerror="this.src='../assets/logos/default.svg'">
+            <div>
+              <div class="team-name">${m.awayTeam.shortName || m.awayTeam.name}</div>
+              <div class="team-short">${m.awayTeam.tla || ''}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+  }
+  container.innerHTML = html;
+}
+
+// Auto refresh every 60s
+if (refreshTimer) clearInterval(refreshTimer);
+refreshTimer = setInterval(loadMatches, 60000);
+loadMatches();
+</script>
+</body>
+</html>

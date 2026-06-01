@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Create Account — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .auth-page { min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;position:relative;z-index:1 }
+    .auth-card { background:var(--navy-mid);border:1px solid var(--border);border-radius:20px;padding:2.5rem;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,0.5) }
+    .auth-header { text-align:center;margin-bottom:2rem }
+    .auth-logo { font-family:'Bebas Neue';font-size:2.5rem;color:var(--gold);letter-spacing:0.1em }
+    .auth-subtitle { color:var(--grey);font-size:0.9rem;margin-top:0.25rem }
+    .error-msg { background:rgba(224,26,46,0.1);border:1px solid rgba(224,26,46,0.3);color:#ff4d5e;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;margin-bottom:1rem;display:none }
+    .success-msg { background:rgba(29,185,84,0.1);border:1px solid rgba(29,185,84,0.3);color:var(--green);padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;margin-bottom:1rem;display:none }
+  </style>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card fade-in">
+    <div class="auth-header">
+      <div class="auth-logo">JOIN THE<br>PORTAL</div>
+      <p class="auth-subtitle">Create your fan account</p>
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+    <div id="successMsg" class="success-msg"></div>
+
+    <div id="signupForm">
+      <div class="grid-2" style="gap:1rem">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" class="form-control" id="nameInput" placeholder="Your name" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Country *</label>
+          <select class="form-control" id="countryInput">
+            <option value="">Select country</option>
+            <option>Afghanistan</option><option>Albania</option><option>Algeria</option>
+            <option>Argentina</option><option>Australia</option><option>Austria</option>
+            <option>Bangladesh</option><option>Belgium</option><option>Brazil</option>
+            <option>Canada</option><option>Chile</option><option>China</option>
+            <option>Colombia</option><option>Croatia</option><option>Czech Republic</option>
+            <option>Denmark</option><option>Ecuador</option><option>Egypt</option>
+            <option>England</option><option>Ethiopia</option><option>Finland</option>
+            <option>France</option><option>Germany</option><option>Ghana</option>
+            <option>Greece</option><option>Hungary</option><option>India</option>
+            <option>Indonesia</option><option>Iran</option><option>Iraq</option>
+            <option>Ireland</option><option>Israel</option><option>Italy</option>
+            <option>Japan</option><option>Jordan</option><option>Kenya</option>
+            <option>Malaysia</option><option>Mexico</option><option>Morocco</option>
+            <option>Netherlands</option><option>New Zealand</option><option>Nigeria</option>
+            <option>Norway</option><option>Pakistan</option><option>Peru</option>
+            <option>Philippines</option><option>Poland</option><option>Portugal</option>
+            <option>Romania</option><option>Russia</option><option>Saudi Arabia</option>
+            <option>Scotland</option><option>Senegal</option><option>Serbia</option>
+            <option>South Africa</option><option>South Korea</option><option>Spain</option>
+            <option>Sri Lanka</option><option>Sweden</option><option>Switzerland</option>
+            <option>Thailand</option><option>Turkey</option><option>UAE</option>
+            <option>Ukraine</option><option>United States</option><option>Uruguay</option>
+            <option>Venezuela</option><option>Vietnam</option><option>Wales</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address *</label>
+        <input type="email" class="form-control" id="emailInput" placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number *</label>
+        <input type="tel" class="form-control" id="phoneInput" placeholder="+1 234 567 8900" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password *</label>
+        <div style="position:relative">
+          <input type="password" class="form-control" id="passwordInput" placeholder="Min. 8 characters" />
+          <button onclick="togglePass('passwordInput')" style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--grey);cursor:pointer;font-size:0.8rem">Show</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password *</label>
+        <input type="password" class="form-control" id="confirmInput" placeholder="Repeat password" />
+      </div>
+
+      <button class="btn btn-primary btn-full btn-lg" onclick="doSignup()" id="signupBtn">CREATE ACCOUNT</button>
+
+      <div style="text-align:center;margin-top:1.5rem">
+        <p class="text-grey" style="font-size:0.9rem">Already have an account? <a href="login.html" style="color:var(--gold)">Sign In</a></p>
+        <a href="../index.html" style="color:var(--grey);font-size:0.85rem;text-decoration:none;display:block;margin-top:0.75rem">← Back to Home</a>
+      </div>
+    </div>
+
+    <!-- Pending state -->
+    <div id="pendingState" style="display:none;text-align:center;padding:1rem">
+      <div style="font-size:4rem;margin-bottom:1rem">⏳</div>
+      <h3 style="font-size:2rem;color:var(--gold);margin-bottom:0.75rem">ACCOUNT PENDING</h3>
+      <p class="text-grey" style="margin-bottom:1.5rem">Your account has been created and is awaiting approval from an admin or moderator. You'll be able to sign in once approved.</p>
+      <a href="../index.html" class="btn btn-outline">Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { signUp } from '../js/auth.js';
+
+window.togglePass = function(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+};
+
+window.doSignup = async function() {
+  const name = document.getElementById('nameInput').value.trim();
+  const country = document.getElementById('countryInput').value;
+  const email = document.getElementById('emailInput').value.trim();
+  const phone = document.getElementById('phoneInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
+  const confirm = document.getElementById('confirmInput').value;
+  const btn = document.getElementById('signupBtn');
+  const errEl = document.getElementById('errorMsg');
+
+  errEl.style.display = 'none';
+
+  if (!name || !country || !email || !phone || !password) {
+    showError('Please fill in all required fields.');
+    return;
+  }
+  if (password.length < 8) {
+    showError('Password must be at least 8 characters.');
+    return;
+  }
+  if (password !== confirm) {
+    showError('Passwords do not match.');
+    return;
+  }
+
+  btn.textContent = 'Creating account…';
+  btn.disabled = true;
+
+  try {
+    const result = await signUp(email, phone, name, country, password);
+    document.getElementById('signupForm').style.display = 'none';
+    document.getElementById('pendingState').style.display = 'block';
+  } catch(e) {
+    let msg = e.message;
+    if (msg.includes('email-already-in-use')) msg = 'This email is already registered.';
+    if (msg.includes('weak-password')) msg = 'Password is too weak. Use at least 8 characters.';
+    showError(msg);
+    btn.textContent = 'CREATE ACCOUNT';
+    btn.disabled = false;
+  }
+};
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>

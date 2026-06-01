@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<nav class="navbar">
+  <a href="../index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <div class="navbar-actions">
+    <button class="btn btn-ghost btn-sm" id="userBtn">—</button>
+    <a href="../index.html" class="btn btn-outline btn-sm">← Site</a>
+  </div>
+</nav>
+<div class="toast-container" id="toastContainer"></div>
+
+<div id="accessDenied" style="display:none" class="main-content text-center" style="padding:4rem">
+  <h2 style="color:var(--crimson)">ACCESS DENIED</h2>
+  <p class="text-grey">You must be an admin or moderator to view this page.</p>
+  <a href="../index.html" class="btn btn-primary mt-3">Go Home</a>
+</div>
+
+<div id="adminPanel" style="display:none">
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <p style="font-family:'Bebas Neue';font-size:0.75rem;color:var(--grey);letter-spacing:0.12em;padding:0 0.5rem;margin-bottom:0.5rem">ADMIN PANEL</p>
+      <button class="admin-nav-item active" onclick="showSection('users', this)" id="navUsers">
+        👥 Users
+      </button>
+      <button class="admin-nav-item" onclick="showSection('live', this)" id="navLive">
+        📺 Live Match
+      </button>
+      <button class="admin-nav-item" onclick="showSection('changepass', this)" id="navPass">
+        🔒 Change Password
+      </button>
+      <hr style="border-color:var(--border);margin:1rem 0" />
+      <a href="../index.html" class="admin-nav-item" style="text-decoration:none">🏠 View Site</a>
+    </aside>
+
+    <!-- Main content -->
+    <main class="admin-main">
+      <!-- Users Section -->
+      <div id="sectionUsers">
+        <div class="section-header">
+          <h2 class="section-title">USER <span>MANAGEMENT</span></h2>
+          <button onclick="loadUsers()" class="btn btn-outline btn-sm">↻ Refresh</button>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="tabs mb-3">
+          <button class="tab-btn active" onclick="filterUsers('all', this)">All</button>
+          <button class="tab-btn" onclick="filterUsers('pending', this)">Pending</button>
+          <button class="tab-btn" onclick="filterUsers('approved', this)">Approved</button>
+          <button class="tab-btn" onclick="filterUsers('banned', this)">Banned</button>
+          <button class="tab-btn" onclick="filterUsers('moderator', this)">Moderators</button>
+        </div>
+
+        <div id="usersContainer">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Live Match Section -->
+      <div id="sectionLive" style="display:none">
+        <div class="section-header">
+          <h2 class="section-title">LIVE <span>MATCH</span> SETTINGS</h2>
+        </div>
+        <div class="card" style="max-width:600px">
+          <div class="card-body">
+            <p class="text-grey mb-3">Set a live stream link for users to watch. The watch button will appear on the homepage when active.</p>
+            <div class="form-group">
+              <label class="form-label">Match Title</label>
+              <input type="text" class="form-control" id="matchTitle" placeholder="e.g. Real Madrid vs Barcelona" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Stream Link</label>
+              <input type="url" class="form-control" id="streamLink" placeholder="https://stream.example.com/live" />
+            </div>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+              <button onclick="saveLiveLink()" class="btn btn-primary">Set Live Match</button>
+              <button onclick="clearLiveLink()" class="btn btn-danger">Remove / End Stream</button>
+            </div>
+            <div id="liveLinkStatus" style="margin-top:1rem;display:none;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem"></div>
+          </div>
+        </div>
+
+        <!-- Current status -->
+        <div id="currentLiveStatus" class="card mt-3" style="max-width:600px"></div>
+      </div>
+
+      <!-- Change Password Section -->
+      <div id="sectionChangepass" style="display:none">
+        <div class="section-header">
+          <h2 class="section-title">CHANGE <span>PASSWORD</span></h2>
+        </div>
+        <div class="card" style="max-width:480px">
+          <div class="card-body">
+            <div id="passMsg" style="display:none;padding:0.75rem 1rem;border-radius:8px;font-size:0.9rem;margin-bottom:1rem"></div>
+            <div class="form-group">
+              <label class="form-label">Current Password</label>
+              <input type="password" class="form-control" id="adminCurrentPass" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-control" id="adminNewPass" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm New Password</label>
+              <input type="password" class="form-control" id="adminConfirmPass" />
+            </div>
+            <button onclick="doAdminChangePass()" class="btn btn-primary">Update Password</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+import {
+  onUserChange, logOut, getAllUsers, approveUser, banUser,
+  promoteToModerator, demoteToUser, setLiveMatchLink, getLiveMatchLink, changePassword
+} from '../js/auth.js';
+
+let allUsers = [];
+let currentRole = null;
+
+onUserChange((user, userData) => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  if (!userData || (userData.role !== 'admin' && userData.role !== 'moderator')) {
+    document.getElementById('accessDenied').style.display = 'block';
+    return;
+  }
+  currentRole = userData.role;
+  document.getElementById('adminPanel').style.display = 'block';
+  document.getElementById('userBtn').textContent = `${userData.name} (${userData.role})`;
+  loadUsers();
+  loadCurrentLive();
+});
+
+window.showSection = function(name, btn) {
+  ['Users', 'Live', 'Changepass'].forEach(s => {
+    document.getElementById(`section${s.charAt(0).toUpperCase() + s.slice(1)}`).style.display = 'none';
+  });
+  document.querySelectorAll('.admin-nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById(`section${name.charAt(0).toUpperCase() + name.slice(1)}`).style.display = 'block';
+  btn.classList.add('active');
+};
+
+window.loadUsers = async function() {
+  const el = document.getElementById('usersContainer');
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    allUsers = await getAllUsers();
+    renderUsers(allUsers);
+  } catch(e) {
+    el.innerHTML = '<p class="text-grey">Failed to load users.</p>';
+  }
+};
+
+window.filterUsers = function(filter, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (filter === 'all') return renderUsers(allUsers);
+  if (filter === 'moderator') return renderUsers(allUsers.filter(u => u.role === 'moderator'));
+  renderUsers(allUsers.filter(u => u.status === filter));
+};
+
+function renderUsers(users) {
+  const el = document.getElementById('usersContainer');
+  if (!users.length) { el.innerHTML = '<p class="text-grey">No users found.</p>'; return; }
+  el.innerHTML = `
+    <div style="overflow-x:auto">
+      <table class="user-table">
+        <thead><tr>
+          <th>Name</th><th>Email</th><th>Phone</th><th>Country</th><th>Role</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          ${users.map(u => {
+            const isAdmin = u.role === 'admin';
+            const isSelf = false; // could compare with current user uid
+            const actions = [];
+            if (u.status === 'pending') actions.push(`<button onclick="doApprove('${u.uid}')" class="btn btn-sm" style="background:rgba(29,185,84,0.1);color:var(--green);border:1px solid rgba(29,185,84,0.3)">Approve</button>`);
+            if (!isAdmin && u.status !== 'banned') actions.push(`<button onclick="doBan('${u.uid}')" class="btn btn-danger btn-sm">Ban</button>`);
+            if (!isAdmin && u.status === 'banned') actions.push(`<button onclick="doApprove('${u.uid}')" class="btn btn-sm btn-outline">Unban</button>`);
+            if (currentRole === 'admin' && !isAdmin) {
+              if (u.role !== 'moderator') actions.push(`<button onclick="doPromote('${u.uid}')" class="btn btn-sm" style="background:rgba(74,173,245,0.1);color:#4aadf5;border:1px solid rgba(74,173,245,0.3)">Make Mod</button>`);
+              else actions.push(`<button onclick="doDemote('${u.uid}')" class="btn btn-ghost btn-sm">Demote</button>`);
+            }
+            return `
+              <tr>
+                <td><strong>${u.name}</strong></td>
+                <td style="font-size:0.85rem">${u.email}</td>
+                <td class="mono" style="font-size:0.8rem">${u.phone || '—'}</td>
+                <td style="font-size:0.85rem">${u.country || '—'}</td>
+                <td><span class="role-badge ${u.role}">${u.role}</span></td>
+                <td><span class="status-badge ${u.status}">${u.status}</span></td>
+                <td><div style="display:flex;gap:4px;flex-wrap:wrap">${actions.join('')}</div></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-grey mt-2" style="font-size:0.8rem">${users.length} user(s) shown</p>
+  `;
+}
+
+async function withToast(action, successMsg) {
+  try {
+    await action();
+    showToast(successMsg, 'success');
+    await loadUsers();
+  } catch(e) {
+    showToast(e.message, 'error');
+  }
+}
+
+window.doApprove = (uid) => withToast(() => approveUser(uid), 'User approved.');
+window.doBan = (uid) => withToast(() => banUser(uid), 'User banned.');
+window.doPromote = (uid) => withToast(() => promoteToModerator(uid), 'User promoted to moderator.');
+window.doDemote = (uid) => withToast(() => demoteToUser(uid), 'Moderator demoted to user.');
+
+window.saveLiveLink = async function() {
+  const title = document.getElementById('matchTitle').value.trim();
+  const link = document.getElementById('streamLink').value.trim();
+  if (!title || !link) { showLiveStatus('Fill in both fields.', false); return; }
+  try {
+    await setLiveMatchLink(link, title);
+    showLiveStatus('Live match set! It will appear on the homepage.', true);
+    loadCurrentLive();
+  } catch(e) {
+    showLiveStatus(e.message, false);
+  }
+};
+
+window.clearLiveLink = async function() {
+  try {
+    await setLiveMatchLink('', '');
+    showLiveStatus('Live match removed.', true);
+    loadCurrentLive();
+  } catch(e) {
+    showLiveStatus(e.message, false);
+  }
+};
+
+function showLiveStatus(msg, ok) {
+  const el = document.getElementById('liveLinkStatus');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok ? 'rgba(29,185,84,0.1)' : 'rgba(224,26,46,0.1)';
+  el.style.color = ok ? 'var(--green)' : '#ff4d5e';
+  el.style.border = `1px solid ${ok ? 'rgba(29,185,84,0.3)' : 'rgba(224,26,46,0.3)'}`;
+}
+
+async function loadCurrentLive() {
+  const el = document.getElementById('currentLiveStatus');
+  try {
+    const data = await getLiveMatchLink();
+    if (data && data.active) {
+      el.innerHTML = `<div class="card-body">
+        <p style="font-family:'Bebas Neue';font-size:0.75rem;color:var(--green);letter-spacing:0.1em;margin-bottom:0.5rem">▶ CURRENTLY LIVE</p>
+        <p style="font-size:1.1rem;font-weight:600">${data.matchTitle}</p>
+        <p class="text-grey mono" style="font-size:0.8rem;margin-top:4px">${data.link}</p>
+      </div>`;
+    } else {
+      el.innerHTML = `<div class="card-body"><p class="text-grey">No live match currently set.</p></div>`;
+    }
+  } catch(e) {}
+}
+
+window.doAdminChangePass = async function() {
+  const current = document.getElementById('adminCurrentPass').value;
+  const newP = document.getElementById('adminNewPass').value;
+  const confirm = document.getElementById('adminConfirmPass').value;
+  const msgEl = document.getElementById('passMsg');
+
+  if (!current || !newP || !confirm) { showPassMsg('Fill all fields.', false); return; }
+  if (newP !== confirm) { showPassMsg('Passwords do not match.', false); return; }
+  if (newP.length < 8) { showPassMsg('Password too short.', false); return; }
+
+  try {
+    await changePassword(current, newP);
+    showPassMsg('Password updated successfully!', true);
+    document.getElementById('adminCurrentPass').value = '';
+    document.getElementById('adminNewPass').value = '';
+    document.getElementById('adminConfirmPass').value = '';
+  } catch(e) {
+    showPassMsg(e.message.includes('wrong-password') ? 'Incorrect current password.' : e.message, false);
+  }
+};
+
+function showPassMsg(msg, ok) {
+  const el = document.getElementById('passMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.style.background = ok ? 'rgba(29,185,84,0.1)' : 'rgba(224,26,46,0.1)';
+  el.style.color = ok ? 'var(--green)' : '#ff4d5e';
+  el.style.border = `1px solid ${ok ? 'rgba(29,185,84,0.3)' : 'rgba(224,26,46,0.3)'}`;
+}
+
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const icons = { success: '✓', error: '✗', info: 'ℹ' };
+  toast.innerHTML = `<span style="font-size:1rem">${icons[type] || 'ℹ'}</span><span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>History — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<nav class="navbar">
+  <a href="../index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <ul class="navbar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="scores.html">Scores</a></li>
+    <li><a href="standings.html">Standings</a></li>
+    <li><a href="clubs.html">Clubs</a></li>
+    <li><a href="stats.html">Stats</a></li>
+    <li><a href="history.html" class="active">History</a></li>
+  </ul>
+  <div class="navbar-actions">
+    <div id="authButtons">
+      <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Join</a>
+    </div>
+    <div id="userMenu" style="display:none">
+      <button class="btn btn-ghost btn-sm" id="userBtn">—</button>
+    </div>
+    <button class="hamburger" onclick="document.body.classList.toggle('mobile-nav-open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="main-content fade-in">
+  <div class="section-header">
+    <h1 class="section-title">LA LIGA <span>HISTORY</span></h1>
+  </div>
+
+  <!-- Season Selector -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="flex items-center gap-2" style="flex-wrap:wrap">
+        <div style="flex:1;min-width:200px">
+          <label class="form-label">Select Season</label>
+          <select class="form-control" id="seasonSelect" onchange="loadSeasonHistory()">
+            <option value="">-- Choose a season --</option>
+            ${Array.from({length:10}, (_, i) => {
+              const y = 2024 - i;
+              return `<option value="${y}">${y}/${String(y+1).slice(2)}</option>`;
+            }).join('')}
+          </select>
+        </div>
+        <div style="align-self:flex-end">
+          <button onclick="loadSeasonHistory()" class="btn btn-primary">Load Season</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="historyContainer"></div>
+</div>
+
+<!-- All-time records (static data) -->
+<div class="main-content" style="margin-top:0">
+  <div class="section-header">
+    <h2 class="section-title">ALL-TIME <span>RECORDS</span></h2>
+  </div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-body">
+        <p class="text-grey mono" style="font-size:0.75rem;letter-spacing:0.1em;margin-bottom:0.5rem">MOST TITLES</p>
+        <h3 style="font-size:1.8rem;color:var(--gold)">Real Madrid</h3>
+        <p class="text-grey">35 La Liga Titles</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <p class="text-grey mono" style="font-size:0.75rem;letter-spacing:0.1em;margin-bottom:0.5rem">ALL-TIME TOP SCORER</p>
+        <h3 style="font-size:1.8rem;color:var(--gold)">Lionel Messi</h3>
+        <p class="text-grey">474 La Liga Goals</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <p class="text-grey mono" style="font-size:0.75rem;letter-spacing:0.1em;margin-bottom:0.5rem">FOUNDED</p>
+        <h3 style="font-size:1.8rem;color:var(--gold)">1929</h3>
+        <p class="text-grey">First season played</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Champions List -->
+  <div class="card mt-4">
+    <div class="card-header">
+      <h3 class="section-title" style="font-size:1.5rem">CHAMPIONS <span>HISTORY</span></h3>
+    </div>
+    <div class="card-body" style="overflow-x:auto">
+      <table class="standings-table">
+        <thead><tr><th>Season</th><th>Champion</th><th>Runner-Up</th><th>Top Scorer</th></tr></thead>
+        <tbody id="championsBody">
+          ${[
+            ['2023/24','Real Madrid','Barcelona','Artem Dovbyk (24)'],
+            ['2022/23','Barcelona','Real Madrid','Robert Lewandowski (23)'],
+            ['2021/22','Real Madrid','Barcelona','Karim Benzema (27)'],
+            ['2020/21','Atlético Madrid','Real Madrid','Lionel Messi (30)'],
+            ['2019/20','Real Madrid','Barcelona','Lionel Messi (25)'],
+            ['2018/19','Barcelona','Atlético Madrid','Lionel Messi (36)'],
+            ['2017/18','Barcelona','Atlético Madrid','Lionel Messi (34)'],
+            ['2016/17','Real Madrid','Barcelona','Lionel Messi (37)'],
+            ['2015/16','Barcelona','Real Madrid','Lionel Messi (26)'],
+            ['2014/15','Barcelona','Real Madrid','Cristiano Ronaldo (48)'],
+            ['2013/14','Atlético Madrid','Barcelona','Cristiano Ronaldo (31)'],
+            ['2012/13','Barcelona','Real Madrid','Lionel Messi (46)'],
+            ['2011/12','Real Madrid','Barcelona','Lionel Messi (50)'],
+            ['2010/11','Barcelona','Real Madrid','Lionel Messi (31)'],
+            ['2009/10','Barcelona','Real Madrid','Lionel Messi (34)'],
+          ].map(([s,c,r,t]) => `
+            <tr>
+              <td class="mono" style="font-size:0.85rem">${s}</td>
+              <td style="color:var(--gold);font-family:'Bebas Neue';letter-spacing:0.04em">${c}</td>
+              <td class="text-grey">${r}</td>
+              <td style="font-size:0.85rem">${t}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { onUserChange } from '../js/auth.js';
+import { getMatchesBySeason, formatDate } from '../js/api.js';
+
+onUserChange((user, userData) => {
+  if (user && userData) {
+    document.getElementById('authButtons').style.display = 'none';
+    document.getElementById('userMenu').style.display = 'block';
+    document.getElementById('userBtn').textContent = userData.name;
+  }
+});
+
+window.loadSeasonHistory = async function() {
+  const season = document.getElementById('seasonSelect').value;
+  if (!season) return;
+  const el = document.getElementById('historyContainer');
+  el.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Loading season data…</p></div>';
+  try {
+    const matches = await getMatchesBySeason(season);
+    if (!matches || matches.length === 0) {
+      el.innerHTML = '<p class="text-grey text-center" style="padding:2rem">No data available for this season.</p>';
+      return;
+    }
+
+    // Group by matchday
+    const byMd = {};
+    for (const m of matches) {
+      const md = m.matchday || 0;
+      if (!byMd[md]) byMd[md] = [];
+      byMd[md].push(m);
+    }
+
+    const mds = Object.keys(byMd).sort((a,b) => parseInt(a) - parseInt(b));
+    el.innerHTML = `
+      <div class="section-header">
+        <h2 class="section-title">${season}/<span>${String(parseInt(season)+1).slice(2)}</span> SEASON</h2>
+        <span class="text-grey mono" style="font-size:0.85rem">${matches.length} matches</span>
+      </div>
+      <div class="tabs" style="flex-wrap:wrap;gap:4px">
+        ${mds.map(md => `<button class="tab-btn" onclick="showMatchday('md-${md}', this)">${md}</button>`).join('')}
+      </div>
+      ${mds.map(md => `
+        <div id="md-${md}" class="matchday-section" style="display:none">
+          <h3 style="font-family:'Bebas Neue';letter-spacing:0.06em;color:var(--gold);margin-bottom:1rem">MATCHDAY ${md}</h3>
+          <div style="display:flex;flex-direction:column;gap:0.75rem">
+            ${byMd[md].map(m => {
+              const score = m.score?.fullTime;
+              return `
+                <div class="match-card">
+                  <div class="team-info">
+                    <img src="${m.homeTeam.crest}" class="team-crest" onerror="this.src='../assets/logos/default.svg'" />
+                    <div>
+                      <div class="team-name">${m.homeTeam.shortName || m.homeTeam.name}</div>
+                      <div class="team-short">${formatDate(m.utcDate)}</div>
+                    </div>
+                  </div>
+                  <div class="score-display">
+                    <div class="score-numbers">${score?.home ?? '—'} — ${score?.away ?? '—'}</div>
+                    <div class="score-status">FT</div>
+                  </div>
+                  <div class="team-info away">
+                    <img src="${m.awayTeam.crest}" class="team-crest" onerror="this.src='../assets/logos/default.svg'" />
+                    <div>
+                      <div class="team-name">${m.awayTeam.shortName || m.awayTeam.name}</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `).join('')}
+    `;
+    // Show first matchday by default
+    if (mds.length) {
+      const firstMd = document.getElementById(`md-${mds[0]}`);
+      if (firstMd) {
+        firstMd.style.display = 'block';
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      }
+    }
+  } catch(e) {
+    el.innerHTML = '<p class="text-grey text-center" style="padding:2rem">Failed to load season data. Check your API key.</p>';
+  }
+};
+
+window.showMatchday = function(id, btn) {
+  document.querySelectorAll('.matchday-section').forEach(s => s.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'block';
+  btn.classList.add('active');
+};
+</script>
+</body>
+</html>

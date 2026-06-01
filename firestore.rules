@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper function
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdminOrMod() {
+      return getUserRole() in ['admin', 'moderator'];
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Any logged-in user can read user docs (needed for admin panel listing)
+      allow read: if request.auth != null;
+
+      // User can only create their own doc during signup
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // User can update their own doc (password change handled by Firebase Auth)
+      // Admin and moderators can update any user doc
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        isAdminOrMod()
+      );
+
+      // Only admin can delete users
+      allow delete: if request.auth != null && getUserRole() == 'admin';
+    }
+
+    // Settings collection (live match link etc.)
+    match /settings/{document} {
+      // Anyone can read settings (needed for live banner on homepage for guests)
+      allow read: if true;
+
+      // Only admin or moderator can write settings
+      allow write: if request.auth != null && isAdminOrMod();
+    }
+  }
+}

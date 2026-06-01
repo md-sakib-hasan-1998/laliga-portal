@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clubs — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<nav class="navbar">
+  <a href="../index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <ul class="navbar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="scores.html">Scores</a></li>
+    <li><a href="standings.html">Standings</a></li>
+    <li><a href="clubs.html" class="active">Clubs</a></li>
+    <li><a href="stats.html">Stats</a></li>
+    <li><a href="history.html">History</a></li>
+  </ul>
+  <div class="navbar-actions">
+    <div id="authButtons">
+      <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Join</a>
+    </div>
+    <div id="userMenu" style="display:none">
+      <button class="btn btn-ghost btn-sm" id="userBtn">—</button>
+    </div>
+    <button class="hamburger" onclick="document.body.classList.toggle('mobile-nav-open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="main-content fade-in">
+  <div class="section-header">
+    <h1 class="section-title">LA LIGA <span>CLUBS</span></h1>
+    <span class="text-grey mono" style="font-size:0.85rem" id="clubCount">2024/25 Season</span>
+  </div>
+
+  <div id="clubsContainer">
+    <div class="loading-state"><div class="spinner"></div><p>Loading clubs…</p></div>
+  </div>
+
+  <!-- Club detail modal -->
+  <div class="modal-overlay" id="clubModal">
+    <div class="modal" style="max-width:600px">
+      <button class="modal-close" onclick="document.getElementById('clubModal').classList.remove('show')">✕</button>
+      <div id="clubModalContent"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { onUserChange } from '../js/auth.js';
+import { getTeams, getTeam } from '../js/api.js';
+
+onUserChange((user, userData) => {
+  if (user && userData) {
+    document.getElementById('authButtons').style.display = 'none';
+    document.getElementById('userMenu').style.display = 'block';
+    document.getElementById('userBtn').textContent = userData.name;
+  }
+});
+
+window.openClub = async function(teamId) {
+  const modal = document.getElementById('clubModal');
+  const content = document.getElementById('clubModalContent');
+  content.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  modal.classList.add('show');
+  try {
+    const team = await getTeam(teamId);
+    content.innerHTML = `
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <img src="${team.crest}" style="width:100px;height:100px;object-fit:contain;margin-bottom:1rem" onerror="this.src='../assets/logos/default.svg'"/>
+        <h2 style="font-size:2.5rem">${team.name}</h2>
+        <p class="text-grey mono">${team.tla} · Founded ${team.founded || '—'}</p>
+      </div>
+      <div class="grid-2" style="gap:0.75rem;font-size:0.9rem">
+        ${infoRow('Stadium', team.venue)}
+        ${infoRow('City', team.address)}
+        ${infoRow('Website', team.website ? `<a href="${team.website}" target="_blank" style="color:var(--gold)">${team.website}</a>` : '—')}
+        ${infoRow('Club Colors', team.clubColors)}
+      </div>
+      <div style="margin-top:1.5rem">
+        <h3 style="font-size:1.2rem;font-family:'Bebas Neue';color:var(--gold);margin-bottom:0.75rem">SQUAD</h3>
+        <div style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
+          ${(team.squad || []).map(p => `
+            <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem">
+              <span>${p.name}</span>
+              <span class="text-grey mono">${p.position || '—'} · #${p.shirtNumber || '?'}</span>
+            </div>
+          `).join('') || '<p class="text-grey">Squad data unavailable.</p>'}
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    content.innerHTML = '<p class="text-grey text-center">Failed to load club details.</p>';
+  }
+};
+
+function infoRow(label, value) {
+  return `
+    <div style="padding:0.6rem;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border)">
+      <div style="font-family:'Bebas Neue';font-size:0.75rem;color:var(--grey);letter-spacing:0.08em">${label}</div>
+      <div style="margin-top:2px">${value || '—'}</div>
+    </div>
+  `;
+}
+
+document.getElementById('clubModal').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('show');
+});
+
+async function loadClubs() {
+  const el = document.getElementById('clubsContainer');
+  try {
+    const teams = await getTeams();
+    document.getElementById('clubCount').textContent = `${teams.length} clubs`;
+    el.innerHTML = `
+      <div class="grid-4 stagger">
+        ${teams.map(t => `
+          <div class="club-card" onclick="openClub(${t.id})" style="cursor:pointer" id="club-${t.id}">
+            <img src="${t.crest}" alt="${t.shortName || t.name}" onerror="this.src='../assets/logos/default.svg'">
+            <div class="club-name">${t.shortName || t.name}</div>
+            <div class="club-meta">${t.tla} · Est. ${t.founded || '?'}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    // Handle hash-based direct link
+    if (window.location.hash) {
+      const id = window.location.hash.replace('#', '');
+      if (id) setTimeout(() => openClub(parseInt(id)), 500);
+    }
+  } catch(e) {
+    el.innerHTML = '<p class="text-grey text-center" style="padding:2rem">Failed to load clubs. Please check your API key.</p>';
+  }
+}
+
+loadClubs();
+</script>
+</body>
+</html>

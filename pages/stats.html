@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stats — LaLiga Portal</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+<nav class="navbar">
+  <a href="../index.html" class="navbar-brand">
+    <div class="logo-icon">LL</div>
+    <span class="brand-text">LA<span>LIGA</span> PORTAL</span>
+  </a>
+  <ul class="navbar-nav">
+    <li><a href="../index.html">Home</a></li>
+    <li><a href="scores.html">Scores</a></li>
+    <li><a href="standings.html">Standings</a></li>
+    <li><a href="clubs.html">Clubs</a></li>
+    <li><a href="stats.html" class="active">Stats</a></li>
+    <li><a href="history.html">History</a></li>
+  </ul>
+  <div class="navbar-actions">
+    <div id="authButtons">
+      <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Join</a>
+    </div>
+    <div id="userMenu" style="display:none">
+      <button class="btn btn-ghost btn-sm" id="userBtn">—</button>
+    </div>
+    <button class="hamburger" onclick="document.body.classList.toggle('mobile-nav-open')">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div class="main-content fade-in">
+  <div class="section-header">
+    <h1 class="section-title">PLAYER <span>STATISTICS</span></h1>
+    <button onclick="loadStats()" class="btn btn-outline btn-sm">↻ Refresh</button>
+  </div>
+
+  <div class="grid-2" style="align-items:start">
+    <!-- Top Scorers -->
+    <div>
+      <h2 class="section-title mb-3" style="font-size:1.5rem">TOP <span>SCORERS</span></h2>
+      <div id="scorersContainer">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <!-- Top Assists -->
+    <div>
+      <h2 class="section-title mb-3" style="font-size:1.5rem">TOP <span>ASSISTS</span></h2>
+      <div id="assistsContainer">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { onUserChange } from '../js/auth.js';
+import { getTopScorers } from '../js/api.js';
+
+onUserChange((user, userData) => {
+  if (user && userData) {
+    document.getElementById('authButtons').style.display = 'none';
+    document.getElementById('userMenu').style.display = 'block';
+    document.getElementById('userBtn').textContent = userData.name;
+  }
+});
+
+function renderPlayerList(players, statKey, statLabel, containerId) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:0.6rem;class="stagger">
+    ${players.map((s, i) => `
+      <div class="player-card">
+        <div class="player-rank ${i < 3 ? 'top-3' : ''}">${i+1}</div>
+        <img src="${s.team?.crest || '../assets/logos/default.svg'}" style="width:36px;height:36px;object-fit:contain" onerror="this.src='../assets/logos/default.svg'"/>
+        <div class="player-info">
+          <div class="player-name">${s.scorer?.name || 'Unknown'}</div>
+          <div class="player-club">${s.team?.shortName || ''} · ${s.scorer?.nationality || ''}</div>
+        </div>
+        <div>
+          <div class="player-stat">${s[statKey] ?? 0}</div>
+          <div class="player-stat-label">${statLabel}</div>
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+window.loadStats = async function() {
+  document.getElementById('scorersContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  document.getElementById('assistsContainer').innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+  try {
+    const scorers = await getTopScorers();
+
+    // Top scorers (by goals)
+    const byGoals = [...scorers].sort((a, b) => (b.goals || 0) - (a.goals || 0)).slice(0, 10);
+    renderPlayerList(byGoals, 'goals', 'Goals', 'scorersContainer');
+
+    // Top assists
+    const byAssists = [...scorers].sort((a, b) => (b.assists || 0) - (a.assists || 0)).slice(0, 10);
+    renderPlayerList(byAssists, 'assists', 'Assists', 'assistsContainer');
+  } catch(e) {
+    document.getElementById('scorersContainer').innerHTML = '<p class="text-grey">Failed to load stats.</p>';
+    document.getElementById('assistsContainer').innerHTML = '<p class="text-grey">Failed to load stats.</p>';
+  }
+};
+
+loadStats();
+</script>
+</body>
+</html>
