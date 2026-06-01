@@ -7,40 +7,61 @@ import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  doc, setDoc, getDoc, updateDoc, collection,
-  query, where, getDocs, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+  doc, setDoc, getDoc, updateDoc,
+  collection, getDocs, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Admin credentials (hardcoded admin)
-const ADMIN_EMAIL = "sakibhasn85@gmail.com";
-const ADMIN_PHONE = "01706363514";
-
+// ── Admin seed ──────────────────────────────────────────────
 export async function initAdmin() {
-  // Check if admin exists
-  const adminRef = doc(db, "users", "admin_sakib");
-  const adminSnap = await getDoc(adminRef);
-  if (!adminSnap.exists()) {
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, "Sakib1998!");
-      await setDoc(doc(db, "users", cred.user.uid), {
-        uid: cred.user.uid,
-        email: ADMIN_EMAIL,
-        phone: ADMIN_PHONE,
-        name: "Admin Sakib",
-        country: "Bangladesh",
-        role: "admin",
-        status: "approved",
-        createdAt: serverTimestamp()
-      });
+  try {
+    // Try signing in first — if admin already exists this succeeds
+    await signInWithEmailAndPassword(auth, "sakibhasn85@gmail.com", "Sakib1998!");
+    const user = auth.currentUser;
+    if (user) {
+      // Make sure Firestore doc exists
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        await setDoc(ref, {
+          uid: user.uid,
+          email: "sakibhasn85@gmail.com",
+          phone: "01706363514",
+          name: "Admin Sakib",
+          country: "Bangladesh",
+          role: "admin",
+          status: "approved",
+          createdAt: serverTimestamp()
+        });
+      }
       await signOut(auth);
-    } catch (e) {
-      // Admin might already exist
     }
+  } catch (err) {
+    if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found") {
+      // Admin doesn't exist yet — create them
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, "sakibhasn85@gmail.com", "Sakib1998!");
+        await setDoc(doc(db, "users", cred.user.uid), {
+          uid: cred.user.uid,
+          email: "sakibhasn85@gmail.com",
+          phone: "01706363514",
+          name: "Admin Sakib",
+          country: "Bangladesh",
+          role: "admin",
+          status: "approved",
+          createdAt: serverTimestamp()
+        });
+        await signOut(auth);
+      } catch (createErr) {
+        console.warn("Admin init error:", createErr.message);
+      }
+    }
+    // Any other error (e.g. wrong-password means admin exists but pwd changed) — ignore
   }
 }
 
+// ── Sign Up ─────────────────────────────────────────────────
 export async function signUp(email, phone, name, country, password) {
   const cred = await createUserWithEmailAndPassword(auth, email, password);
   await setDoc(doc(db, "users", cred.user.uid), {
@@ -54,58 +75,60 @@ export async function signUp(email, phone, name, country, password) {
     createdAt: serverTimestamp()
   });
   await signOut(auth);
-  return { success: true, message: "Account created! Awaiting admin approval." };
+  return { success: true };
 }
 
+// ── Sign In ─────────────────────────────────────────────────
 export async function signIn(email, password) {
   const cred = await signInWithEmailAndPassword(auth, email, password);
-  const userDoc = await getDoc(doc(db, "users", cred.user.uid));
-  const userData = userDoc.data();
+  const snap = await getDoc(doc(db, "users", cred.user.uid));
+  if (!snap.exists()) throw new Error("User record not found. Contact admin.");
+  const userData = snap.data();
   if (userData.status === "banned") {
     await signOut(auth);
     throw new Error("Your account has been banned.");
   }
   if (userData.status === "pending") {
     await signOut(auth);
-    throw new Error("Your account is pending approval.");
+    throw new Error("Your account is pending admin approval.");
   }
   return userData;
 }
 
+// ── Sign Out ─────────────────────────────────────────────────
 export async function logOut() {
   await signOut(auth);
-  window.location.href = "/index.html";
+  window.location.href = getBasePath() + "index.html";
 }
 
+// ── Auth listener ────────────────────────────────────────────
 export function onUserChange(callback) {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      callback(user, userDoc.exists() ? userDoc.data() : null);
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        callback(user, snap.exists() ? snap.data() : null);
+      } catch {
+        callback(user, null);
+      }
     } else {
       callback(null, null);
     }
   });
 }
 
-export async function getCurrentUserData() {
-  const user = auth.currentUser;
-  if (!user) return null;
-  const snap = await getDoc(doc(db, "users", user.uid));
-  return snap.exists() ? snap.data() : null;
-}
-
+// ── Change Password ──────────────────────────────────────────
 export async function changePassword(currentPass, newPass) {
   const user = auth.currentUser;
+  if (!user) throw new Error("Not logged in.");
   const credential = EmailAuthProvider.credential(user.email, currentPass);
   await reauthenticateWithCredential(user, credential);
   await updatePassword(user, newPass);
 }
 
-// Admin/Moderator functions
+// ── Admin/Mod helpers ────────────────────────────────────────
 export async function getAllUsers() {
-  const q = query(collection(db, "users"));
-  const snap = await getDocs(q);
+  const snap = await getDocs(collection(db, "users"));
   return snap.docs.map(d => d.data());
 }
 
@@ -129,7 +152,7 @@ export async function setLiveMatchLink(link, matchTitle) {
   await setDoc(doc(db, "settings", "liveMatch"), {
     link,
     matchTitle,
-    active: !!link,
+    active: link.trim().length > 0,
     updatedAt: serverTimestamp()
   });
 }
@@ -137,4 +160,10 @@ export async function setLiveMatchLink(link, matchTitle) {
 export async function getLiveMatchLink() {
   const snap = await getDoc(doc(db, "settings", "liveMatch"));
   return snap.exists() ? snap.data() : null;
+}
+
+// ── Utility ──────────────────────────────────────────────────
+function getBasePath() {
+  const path = window.location.pathname;
+  return path.includes('/pages/') ? '../' : './';
 }
