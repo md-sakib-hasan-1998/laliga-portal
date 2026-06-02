@@ -14,9 +14,12 @@
     .check-item.fail{border-color:rgba(224,26,46,.4);background:rgba(224,26,46,.05)}
     .check-item.warn{border-color:rgba(245,178,34,.4);background:rgba(245,178,34,.05)}
     .check-item.pending{opacity:.6}
-    code{background:rgba(255,255,255,.07);padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem}
-    .instruction{background:rgba(245,178,34,.06);border:1px solid rgba(245,178,34,.2);border-radius:10px;padding:1rem 1.25rem;margin-top:.5rem;font-size:.85rem;color:var(--grey-light)}
-    .instruction b{color:var(--gold)}
+    code{background:rgba(255,255,255,.07);padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:.8rem}
+    .fix-box{background:rgba(245,178,34,.06);border:1px solid rgba(245,178,34,.2);border-radius:10px;padding:1rem 1.25rem;margin-top:.5rem;font-size:.85rem;color:var(--grey-light)}
+    .fix-box b{color:var(--gold)}
+    .fix-box ol{margin:.5rem 0 0 1.2rem}
+    .fix-box li{margin:.3rem 0}
+    .code-block{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:.8rem;margin:.75rem 0;overflow-x:auto;white-space:pre;line-height:1.6}
   </style>
 </head>
 <body>
@@ -29,10 +32,8 @@
 
 <div class="setup-page fade-in">
   <h1 class="section-title mb-1">SETUP <span>CHECKER</span></h1>
-  <p class="text-grey mb-4">This page checks that your Firebase and Football Data API are configured correctly.</p>
-
+  <p class="text-grey mb-4">Checks that Firebase and Football Data API are configured correctly.</p>
   <div id="checks"></div>
-
   <div style="margin-top:2rem;display:flex;gap:1rem;flex-wrap:wrap">
     <button onclick="runChecks()" class="btn btn-primary">↻ Run Checks Again</button>
     <a href="pages/login.html" class="btn btn-outline">Go to Login →</a>
@@ -43,133 +44,147 @@
 <script type="module">
 import { auth, db } from './js/firebase-config.js';
 import { initAdmin } from './js/auth.js';
-import { getStandings } from './js/api.js';
 import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const container = document.getElementById('checks');
 
-function addCheck(id, title, detail = '', status = 'pending') {
-  const icons = { pass:'✅', fail:'❌', warn:'⚠️', pending:'⏳' };
-  let el = document.getElementById('chk-' + id);
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'chk-' + id;
-    container.appendChild(el);
-  }
-  el.className = `check-item ${status}`;
-  el.innerHTML = `
-    <div class="check-icon">${icons[status]}</div>
-    <div>
-      <div class="check-title">${title}</div>
-      ${detail ? `<div class="check-detail">${detail}</div>` : ''}
-    </div>
-  `;
+function addCheck(id, title, detail='', status='pending') {
+  const icons = {pass:'✅', fail:'❌', warn:'⚠️', pending:'⏳'};
+  let el = document.getElementById('chk-'+id);
+  if (!el) { el=document.createElement('div'); el.id='chk-'+id; container.appendChild(el); }
+  el.className=`check-item ${status}`;
+  el.innerHTML=`<div class="check-icon">${icons[status]}</div><div><div class="check-title">${title}</div>${detail?`<div class="check-detail">${detail}</div>`:''}</div>`;
 }
 
-function addInstruction(html) {
-  const el = document.createElement('div');
-  el.className = 'instruction';
-  el.innerHTML = html;
-  container.appendChild(el);
+function addFix(html) {
+  const el=document.createElement('div'); el.className='fix-box'; el.innerHTML=html; container.appendChild(el);
 }
 
 window.runChecks = async function() {
-  container.innerHTML = '';
+  container.innerHTML='';
 
-  // ── CHECK 1: Firebase config ──────────────────────────────
-  addCheck('fb-config', 'Firebase Config', 'Checking…', 'pending');
+  // CHECK 1 — Firebase config
+  addCheck('fb','Firebase Config','Checking…','pending');
   const apiKey = auth.app.options.apiKey;
-  if (!apiKey || apiKey.includes('PASTE') || apiKey.includes('YOUR')) {
-    addCheck('fb-config', 'Firebase Config — NOT SET', 'The apiKey in js/firebase-config.js still has a placeholder value.', 'fail');
-    addInstruction(`<b>How to fix:</b> Open <code>js/firebase-config.js</code> and replace all <code>PASTE_YOUR_...</code> values with your real Firebase project config.<br><br>Get them from: <b>Firebase Console → Project Settings → Your Apps → Web App</b>`);
-    return; // No point running other checks
+  if (!apiKey || apiKey.includes('PASTE') || apiKey.includes('YOUR_')) {
+    addCheck('fb','Firebase Config — NOT SET','The placeholder values are still in js/firebase-config.js','fail');
+    addFix(`<b>Fix:</b> Go to your GitHub repo → js/firebase-config.js → ✏️ Edit → paste your real Firebase values → Commit`);
+    addSummary(0,1,0); return;
   }
-  addCheck('fb-config', 'Firebase Config', `Project: ${auth.app.options.projectId}`, 'pass');
+  addCheck('fb','Firebase Config',`Project: ${auth.app.options.projectId}`,'pass');
 
-  // ── CHECK 2: Firestore connection ──────────────────────────
-  addCheck('firestore', 'Firestore Database', 'Connecting…', 'pending');
+  // CHECK 2 — Firestore
+  addCheck('fs','Firestore Database','Connecting…','pending');
   try {
-    await getDoc(doc(db, 'settings', 'liveMatch'));
-    addCheck('firestore', 'Firestore Database', 'Connected successfully.', 'pass');
-  } catch (e) {
-    addCheck('firestore', 'Firestore Database — ERROR', e.message, 'fail');
-    addInstruction(`<b>How to fix:</b><br>
-      1. Go to <b>Firebase Console → Firestore Database</b><br>
-      2. Make sure the database is created (click "Create database" if it shows that option)<br>
-      3. Go to the <b>Rules</b> tab and paste the rules from <code>firestore.rules</code><br>
-      4. Click <b>Publish</b>`);
+    await getDoc(doc(db,'settings','liveMatch'));
+    addCheck('fs','Firestore Database','Connected successfully.','pass');
+  } catch(e) {
+    addCheck('fs','Firestore Database — ERROR',e.message,'fail');
+    addFix(`<b>Fix:</b><ol>
+      <li>Firebase Console → Firestore Database → Create database (if not created)</li>
+      <li>Rules tab → paste the rules from firestore.rules file → Publish</li>
+    </ol>`);
   }
 
-  // ── CHECK 3: Admin account ─────────────────────────────────
-  addCheck('admin', 'Admin Account', 'Checking…', 'pending');
+  // CHECK 3 — Admin account
+  addCheck('adm','Admin Account','Checking…','pending');
   try {
-    const cred = await signInWithEmailAndPassword(auth, 'sakibhasn85@gmail.com', 'Sakib1998!');
-    const snap = await getDoc(doc(db, 'users', cred.user.uid));
+    const cred = await signInWithEmailAndPassword(auth,'sakibhasn85@gmail.com','Sakib1998!');
+    const snap = await getDoc(doc(db,'users',cred.user.uid));
     await signOut(auth);
-    if (snap.exists() && snap.data().role === 'admin') {
-      addCheck('admin', 'Admin Account', 'Admin account exists and is set up correctly.', 'pass');
+    if (snap.exists() && snap.data().role==='admin') {
+      addCheck('adm','Admin Account','Admin account exists and is set up correctly.','pass');
     } else {
-      addCheck('admin', 'Admin Account — Missing Firestore Doc', 'Auth exists but Firestore user doc missing. Click button below.', 'warn');
-      addInstruction(`<b>How to fix:</b> Go to <a href="pages/login.html" style="color:var(--gold)">the login page</a> and click <b>"Create Admin Account"</b> under the setup section.`);
+      addCheck('adm','Admin Account — Firestore doc missing','Auth exists but no user record.','warn');
+      addFix(`<b>Fix:</b> Go to <a href="pages/login.html" style="color:var(--gold)">Login page</a> → open "⚙️ First time / Admin setup" → click "Create Admin Account"`);
     }
-  } catch (e) {
-    if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found') {
-      addCheck('admin', 'Admin Account — Does Not Exist Yet', 'Needs to be created.', 'warn');
-      addInstruction(`<b>How to fix:</b> Go to <a href="pages/login.html" style="color:var(--gold)">the login page</a> and click <b>"Create Admin Account"</b> under the setup section at the bottom.`);
+  } catch(e) {
+    if (e.code==='auth/invalid-credential'||e.code==='auth/user-not-found') {
+      addCheck('adm','Admin Account — Not Created Yet','Needs to be created.','warn');
+      addFix(`<b>Fix:</b> Go to <a href="pages/login.html" style="color:var(--gold)">Login page</a> → open "⚙️ First time / Admin setup" → click "Create Admin Account"`);
     } else {
-      addCheck('admin', 'Admin Account — Error', e.message, 'fail');
+      addCheck('adm','Admin Account — Error',e.message,'fail');
     }
   }
 
-  // ── CHECK 4: Football Data API ─────────────────────────────
-  addCheck('api', 'Football Data API Key', 'Fetching…', 'pending');
+  // CHECK 4 — Football Data API via CORS proxy
+  addCheck('api','Football Data API','Fetching La Liga data via proxy…','pending');
+  const API_KEY_TEST = (() => {
+    // Read from the module's known value via a separate fetch test
+    return null; // We'll test via actual API call
+  })();
+
   try {
-    const standings = await getStandings();
-    if (standings && standings.length > 0) {
-      addCheck('api', 'Football Data API Key', `✓ Working — ${standings.length} teams loaded from La Liga.`, 'pass');
+    // Import the actual function to test it end-to-end
+    const { getStandings } = await import('./js/api.js');
+    const table = await getStandings();
+    if (table && table.length > 0) {
+      addCheck('api','Football Data API',`✓ Working — ${table.length} teams loaded from La Liga`,'pass');
     } else {
-      addCheck('api', 'Football Data API Key — No Data', 'API responded but returned no data.', 'warn');
+      addCheck('api','Football Data API — No Data','API responded but returned empty data.','warn');
     }
-  } catch (e) {
-    if (e.message.includes('PASTE') || e.message.includes('YOUR') || e.message.includes('403') || e.message.includes('401')) {
-      addCheck('api', 'Football Data API Key — NOT SET / Invalid', e.message, 'fail');
-      addInstruction(`<b>How to fix:</b><br>
-        1. Register for a free key at <b>https://www.football-data.org/client/register</b><br>
-        2. Open <code>js/api.js</code><br>
-        3. Replace <code>PASTE_YOUR_FOOTBALL_DATA_API_KEY_HERE</code> with your actual key<br>
-        4. Save and re-upload the file to GitHub`);
+  } catch(e) {
+    const msg = e.message || String(e);
+    if (msg.includes('PASTE') || msg.includes('YOUR_')) {
+      addCheck('api','Football Data API — KEY NOT SET','You still have the placeholder key in js/api.js','fail');
+      addFix(apiKeyFix());
+    } else if (msg.toLowerCase().includes('fetch') || msg.includes('cors') || msg.includes('network') || msg.includes('Failed to fetch')) {
+      addCheck('api','Football Data API — CORS/Network Error',`Error: ${msg}`,'fail');
+      addFix(corsFix());
+    } else if (msg.includes('403') || msg.includes('401') || msg.includes('permission')) {
+      addCheck('api','Football Data API — Invalid Key',`Your API key is incorrect or not activated yet. Error: ${msg}`,'fail');
+      addFix(apiKeyFix());
     } else {
-      addCheck('api', 'Football Data API — Error', e.message, 'fail');
+      addCheck('api',`Football Data API — Error`,msg,'fail');
+      addFix(corsFix());
     }
   }
 
-  // ── Summary ────────────────────────────────────────────────
+  // Summary
   const passes = container.querySelectorAll('.check-item.pass').length;
   const fails  = container.querySelectorAll('.check-item.fail').length;
   const warns  = container.querySelectorAll('.check-item.warn').length;
-  const total  = 4;
-
-  const summaryEl = document.createElement('div');
-  summaryEl.style.cssText = 'margin-top:1.5rem;padding:1rem 1.25rem;border-radius:10px;text-align:center;font-family:Bebas Neue,sans-serif;font-size:1.2rem;letter-spacing:.06em';
-  if (fails === 0 && warns === 0) {
-    summaryEl.style.background = 'rgba(29,185,84,.1)';
-    summaryEl.style.border = '1px solid rgba(29,185,84,.3)';
-    summaryEl.style.color = 'var(--green)';
-    summaryEl.textContent = `🎉 All ${total} checks passed! Your site is fully set up.`;
-  } else if (fails > 0) {
-    summaryEl.style.background = 'rgba(224,26,46,.08)';
-    summaryEl.style.border = '1px solid rgba(224,26,46,.3)';
-    summaryEl.style.color = '#ff4d5e';
-    summaryEl.textContent = `${fails} check(s) failed — follow the instructions above.`;
-  } else {
-    summaryEl.style.background = 'rgba(245,178,34,.08)';
-    summaryEl.style.border = '1px solid rgba(245,178,34,.3)';
-    summaryEl.style.color = 'var(--gold)';
-    summaryEl.textContent = `${passes} passed, ${warns} warning(s) — almost there!`;
-  }
-  container.appendChild(summaryEl);
+  addSummary(passes, fails, warns);
 };
+
+function apiKeyFix() {
+  return `<b>Fix — API Key not set or invalid:</b><ol>
+    <li>Register at <a href="https://www.football-data.org/client/register" target="_blank" style="color:var(--gold)">football-data.org/client/register</a></li>
+    <li>Check your email — they send the key right away (check spam)</li>
+    <li>Go to GitHub repo → js/api.js → ✏️ Edit</li>
+    <li>Replace <code>PASTE_YOUR_FOOTBALL_DATA_API_KEY_HERE</code> with your real key</li>
+    <li>Commit → wait 2 minutes → run checks again</li>
+  </ol>`;
+}
+
+function corsFix() {
+  return `<b>Fix — CORS/Network blocked:</b> The football-data.org API blocks direct browser requests.
+  The site uses corsproxy.io to bypass this. If corsproxy.io is down, try this:
+  <ol>
+    <li>Go to GitHub repo → js/api.js → ✏️ Edit</li>
+    <li>Find this line near the top:<br><code>const PROXY_URL = "https://corsproxy.io/?";</code></li>
+    <li>Change it to:<br><code>const PROXY_URL = "https://api.allorigins.win/raw?url=";</code></li>
+    <li>Commit → wait 2 min → run checks again</li>
+  </ol>
+  <b>Best fix (permanent):</b> Set up a free Cloudflare Worker — see CLOUDFLARE_WORKER_SETUP.md in your repo.`;
+}
+
+function addSummary(passes, fails, warns) {
+  const el=document.createElement('div');
+  el.style.cssText='margin-top:1.5rem;padding:1rem 1.25rem;border-radius:10px;text-align:center;font-family:Bebas Neue,sans-serif;font-size:1.2rem;letter-spacing:.06em';
+  if(fails===0&&warns===0){
+    el.style.background='rgba(29,185,84,.1)'; el.style.border='1px solid rgba(29,185,84,.3)'; el.style.color='var(--green)';
+    el.innerHTML='🎉 All checks passed! Your site is fully working.';
+  } else if(fails>0){
+    el.style.background='rgba(224,26,46,.08)'; el.style.border='1px solid rgba(224,26,46,.3)'; el.style.color='#ff4d5e';
+    el.innerHTML=`${fails} check(s) failed — follow the fix instructions above.`;
+  } else {
+    el.style.background='rgba(245,178,34,.08)'; el.style.border='1px solid rgba(245,178,34,.3)'; el.style.color='var(--gold)';
+    el.innerHTML=`${passes} passed, ${warns} warning(s).`;
+  }
+  container.appendChild(el);
+}
 
 runChecks();
 </script>
