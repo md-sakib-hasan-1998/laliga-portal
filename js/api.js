@@ -1,37 +1,68 @@
 // ============================================================
-// STEP 2: PASTE YOUR FOOTBALL-DATA.ORG API KEY HERE
-// Free key from: https://www.football-data.org/client/register
+// PASTE YOUR football-data.org API KEY BELOW
+// Get free key: https://www.football-data.org/client/register
 // ============================================================
 const API_KEY = "ff4756dbe81247e498d88d450d2d1772";
 
-const BASE     = "https://api.football-data.org/v4";
-const LL       = 2014; // La Liga competition ID
-const HEADERS  = { "X-Auth-Token": API_KEY };
+// ============================================================
+// CORS PROXY — Required for GitHub Pages (browser can't call
+// football-data.org directly due to CORS restrictions)
+//
+// OPTION A (easiest, no setup): corsproxy.io — already set below
+// OPTION B (most reliable): Set up your own Cloudflare Worker
+//   → See CLOUDFLARE_WORKER_SETUP.md in this repo
+//   → After setup, replace PROXY_URL with your worker URL:
+//     const PROXY_URL = "https://YOUR-WORKER.YOUR-NAME.workers.dev";
+// ============================================================
+const PROXY_URL = "https://corsproxy.io/?";
 
-// ── Simple in-memory cache ────────────────────────────────────
+const BASE = "https://api.football-data.org/v4";
+const LL   = 2014; // La Liga competition ID
+
+// ── Cache (prevents hitting rate limits) ──────────────────
 const _cache = new Map();
 function cacheGet(k) {
   const e = _cache.get(k);
-  return e && Date.now() < e.exp ? e.data : null;
+  return (e && Date.now() < e.exp) ? e.data : null;
 }
 function cacheSet(k, data, ttlSec) {
   _cache.set(k, { data, exp: Date.now() + ttlSec * 1000 });
 }
 
+// ── Core fetch via CORS proxy ──────────────────────────────
 async function apiFetch(path, ttlSec = 60) {
   const cached = cacheGet(path);
   if (cached) return cached;
-  const res = await fetch(BASE + path, { headers: HEADERS });
+
+  const targetUrl = `${BASE}${path}`;
+  const url = `${PROXY_URL}${encodeURIComponent(targetUrl)}`;
+
+  const res = await fetch(url, {
+    headers: {
+      "X-Auth-Token": API_KEY,
+      "X-Requested-With": "XMLHttpRequest"
+    },
+    signal: AbortSignal.timeout(15000)
+  });
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
+    const text = await res.text().catch(() => "");
+    // Try to parse error from football-data
+    try {
+      const err = JSON.parse(text);
+      throw new Error(err.message || `HTTP ${res.status}`);
+    } catch {
+      throw new Error(`HTTP ${res.status}`);
+    }
   }
+
   const data = await res.json();
+  if (data.errorCode) throw new Error(data.message || "API error");
   cacheSet(path, data, ttlSec);
   return data;
 }
 
-// ── Public API ────────────────────────────────────────────────
+// ── Public API functions ───────────────────────────────────
 export async function getStandings() {
   const d = await apiFetch(`/competitions/${LL}/standings`, 300);
   return d.standings[0].table;
@@ -74,12 +105,16 @@ export async function getMatchday(matchday) {
   return d.matches || [];
 }
 
-// ── Helpers ───────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
 export function formatDate(str) {
-  return new Date(str).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(str).toLocaleDateString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric"
+  });
 }
 export function formatTime(str) {
-  return new Date(str).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return new Date(str).toLocaleTimeString("en-GB", {
+    hour: "2-digit", minute: "2-digit"
+  });
 }
 export function startLiveRefresh(cb, ms = 60000) {
   cb();
